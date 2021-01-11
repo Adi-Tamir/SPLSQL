@@ -7,10 +7,17 @@ from sendShipment import send_shipment
 
 
 def main():
-    conn = sqlite3.connect('database.db')
-    create_db(conn)
-    insert_info(conn, 'config.txt')
-    complete_orders(conn, 'orders.txt')
+    conn = None
+    try:
+        conn = sqlite3.connect('database.db')
+        create_db(conn)
+        insert_info(conn, 'config.txt')
+        complete_orders(conn, 'orders.txt')
+    #except Error as e:
+    #    print(e)
+    finally:
+        if conn:
+            conn.close()
     pass
 
 
