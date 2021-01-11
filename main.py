@@ -1,16 +1,34 @@
-# This is a sample Python script.
+import sqlite3
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from createDB import create_db, insert_info
+from receiveShipment import receive_shipment
+from sendShipment import send_shipment
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def main():
+    conn = sqlite3.connect('database.db')
+    create_db(conn)
+    insert_info(conn, 'config.txt')
+    complete_orders(conn, 'orders.txt')
+    pass
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+def complete_orders(conn, orders_path, output_path):
+    with open(orders_path) as f:
+        lines = f.readlines()
+    for line in lines:
+        arguments = line.split(',')
+        if len(arguments) == 3:
+            name = arguments[0]
+            amount = arguments[1]
+            date = arguments[2]
+            receive_shipment(conn, name, amount, date)
+        else:
+            location = arguments[0]
+            amount = arguments[1]
+            send_shipment(conn, location, amount)
+        order = get_order_results(conn)
+        f = open(output_path, "a")
+        f.write(order + '\n')
+        f.close()
+    pass
