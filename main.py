@@ -1,6 +1,7 @@
 import sqlite3
 
 from createDB import create_db, insert_info
+from outputGeneration import get_order_results
 from receiveShipment import receive_shipment
 from sendShipment import send_shipment
 
