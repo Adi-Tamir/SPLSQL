@@ -1,6 +1,6 @@
 class Vaccines:
     def __init__(self, id, date, supplier, quantity):
-        self.id = id
+        self.id = int(id)
         self.date = date
         self.supplier = supplier
         self.quantity = quantity

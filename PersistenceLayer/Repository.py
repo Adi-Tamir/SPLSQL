@@ -1,7 +1,8 @@
 import atexit
 import sqlite3
-from DAO import _Vaccines, _Suppliers, _Logistics, _Clinics
-from DTO.DTOs import Logistics, Clinics, Suppliers, Vaccines
+from PersistenceLayer.DAOs import _Vaccines, _Logistics, _Clinics, _Suppliers
+
+from PersistenceLayer.DTOs import Logistics, Clinics, Suppliers, Vaccines
 
 
 class Repository:
@@ -20,34 +21,36 @@ class Repository:
     def create_database(self):
         self._conn.executescript("""
         CREATE TABLE vaccines(
-            id INT PRIMARY KEY autoincrement,
-            date DATETIME NOT NULL
-            supplier INT NOT NULL,
-            quantity INT NOT NULL,
-            FOREIGN KEY (supplier) REFERENCES Suppliers(id)
-        );
-    
-        CREATE TABLE suppliers(
-            id INT PRIMARY KEY autoincrement,
-            name TEXT NOT NULL
-            FOREIGN KEY (logistic) REFERENCES Logistics(id)
-        );
-    
-         CREATE TABLE clinics(
-            id INT PRIMARY KEY autoincrement,
-            location TEXT NOT NULL
-            demand INT NOT NULL,
-            FOREIGN KEY (logistic) REFERENCES Logistics(id)
-        );
-    
-        CREATE TABLE logistics(
-            id INT PRIMARY KEY autoincrement,
-            name TEXT NOT NULL
-            count_sent INT NOT NULL,
-            count_received INT NOT NULL,
-        );
+    id INTEGER PRIMARY KEY autoincrement,
+    date date NOT NULL,
+    supplier INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    FOREIGN KEY (supplier) REFERENCES Suppliers(id)
+);
+
+CREATE TABLE suppliers(
+    id INTEGER PRIMARY KEY autoincrement,
+    name TEXT NOT NULL,
+logistic INTEGER,
+    FOREIGN KEY (logistic) REFERENCES Logistics(id)
+);
+
+ CREATE TABLE clinics(
+    id INTEGER PRIMARY KEY autoincrement,
+    location TEXT NOT NULL,
+    demand INTEGER NOT NULL,
+logistic INTEGER,
+    FOREIGN KEY (logistic) REFERENCES Logistics(id)
+);
+
+CREATE TABLE logistics(
+    id INTEGER PRIMARY KEY autoincrement,
+    name TEXT NOT NULL,
+    count_sent INTEGER NOT NULL,
+    count_received INT NOT NULL
+);
             """)
-        self._conn.commit()
+        #self._conn.commit()
         pass
 
     def insert_info(self, config_path):
@@ -57,28 +60,28 @@ class Repository:
         nums = nums_line.split(",")
 
         end = len(lines) - 1
-        start = end - nums[3] + 1
+        start = end - int(nums[3]) + 1
         for line in range(start, end):
-            logistic = self.create_logistics(self, lines[line])
-            _Logistics.insert(logistic)
+            logistic = self.create_logistics(lines[line].replace('\n', ''))
+            _Logistics.insert_l(self, logistic)
 
         end -= 1
-        start = end - nums[2] + 1
+        start = end - int(nums[2]) + 1
         for line in range(start, end):
-            clinic = self.create_clinics(self, lines[line])
-            _Clinics.insert(clinic)
+            clinic = self.create_clinics(lines[line].replace('\n', ''))
+            _Clinics.insert_c(self, clinic)
 
         end -= 1
-        start = end - nums[1] + 1
+        start = end - int(nums[1]) + 1
         for line in range(start, end):
-            supplier = self.create_supplier(self, lines[line])
-            _Suppliers.insert(supplier)
+            supplier = self.create_supplier(lines[line].replace('\n', ''))
+            _Suppliers.insert(self, supplier)
 
         end -= 1
-        start = end - nums[0] + 1
+        start = end - int(nums[0]) + 1
         for line in range(start, end):
-            vaccine = self.create_vaccines(self, lines[line])
-            _Vaccines.insert(vaccine)
+            vaccine = self.create_vaccines(lines[line].replace('\n', ''))
+            _Vaccines.insert(self, vaccine)
         self._conn.commit()
         pass
 
@@ -110,7 +113,7 @@ class Repository:
             if len(par) == 3:
                 self.receive_shipment(self, par[0], par[1], par[2])
             else:
-                self.send_shipment(self, par[0], par[1])
+                self.send_shipment(par[0], par[1])
             order = self.get_order_results(self)
             f = open(output_path, "a")
             f.write(order + '\n')
@@ -126,23 +129,24 @@ class Repository:
         pass
 
     def send_shipment(self, location, amount):
-        _Clinics.update(amount, location)
-        while amount > 0:
-            vaccine_entry = _Vaccines.find_oldest_vaccine()
-            if vaccine_entry.quantity > amount:
+        _Clinics.update(self, amount, location)
+        amount = int(amount)
+        while int(amount) > 0:
+            vaccine_entry = _Vaccines.find_oldest_vaccine(self)
+            if int(vaccine_entry.quantity) > int(amount):
                 _Vaccines.update_vaccine_entry(amount, vaccine_entry.id)
                 logistic_id = _Clinics.find_by_location(location).logistic
                 _Logistics.update_sent(logistic_id, amount)
                 amount = 0
             else:
                 amount -= vaccine_entry.quantity
-                _Vaccines.delete_entry(vaccine_entry.id)
+                print(vaccine_entry.id)
+                self.vaccines.delete_entry(vaccine_entry.id)
                 logistic_id = _Clinics.find_by_location(location).logistic
                 _Logistics.update_sent(logistic_id, amount)
         pass
 
-    def get_order_results(conn):
-        cur = conn.cursor()
+    def get_order_results(self):
         total_inventory = 0
         total_demand = 0
         total_received = 0
