@@ -5,38 +5,16 @@ from outputGeneration import get_order_results
 from receiveShipment import receive_shipment
 from sendShipment import send_shipment
 
+from Repository import Repository
+import sys
+
 
 def main():
-    conn = None
-    try:
-        conn = sqlite3.connect('database.db')
-        create_db(conn)
-        insert_info(conn, 'config.txt')
-        complete_orders(conn, 'orders.txt')
-    #except Error as e:
-    #    print(e)
-    finally:
-        if conn:
-            conn.close()
+    repo = Repository()
+    repo.create_database()
+    repo.insert_info(sys.argv[0])
+    repo.complete_orders(sys.argv[1], sys.argv[2])
     pass
 
 
-def complete_orders(conn, orders_path, output_path):
-    with open(orders_path) as f:
-        lines = f.readlines()
-    for line in lines:
-        arguments = line.split(',')
-        if len(arguments) == 3:
-            name = arguments[0]
-            amount = arguments[1]
-            date = arguments[2]
-            receive_shipment(conn, name, amount, date)
-        else:
-            location = arguments[0]
-            amount = arguments[1]
-            send_shipment(conn, location, amount)
-        order = get_order_results(conn)
-        f = open(output_path, "a")
-        f.write(order + '\n')
-        f.close()
-    pass
+
