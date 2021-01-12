@@ -47,6 +47,7 @@ class Repository:
             count_received INT NOT NULL,
         );
             """)
+        self._conn.commit()
         pass
 
     def insert_info(self, config_path):
@@ -78,6 +79,7 @@ class Repository:
         for line in range(start, end):
             vaccine = self.create_vaccines(self, lines[line])
             _Vaccines.insert(vaccine)
+        self._conn.commit()
         pass
 
     def create_logistics(self, line):
@@ -113,6 +115,7 @@ class Repository:
             f = open(output_path, "a")
             f.write(order + '\n')
             f.close()
+        self._conn.commit()
         pass
 
     def receive_shipment(self, name, amount, date):
