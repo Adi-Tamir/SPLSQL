@@ -108,8 +108,8 @@ class Repository:
             if len(par) == 3:
                 self.receive_shipment(self, par[0], par[1], par[2])
             else:
-                send_shipment(par[0], par[1])
-            order = get_order_results()
+                self.send_shipment(self, par[0], par[1])
+            order = self.get_order_results(self)
             f = open(output_path, "a")
             f.write(order + '\n')
             f.close()
@@ -119,7 +119,7 @@ class Repository:
         supplier = _Suppliers.find_by_name(name)
         vaccine = Vaccines(date, supplier.name, amount)
         _Vaccines.insert(vaccine)
-        _Logistics.update(supplier.logistic, amount)
+        _Logistics.update_received(supplier.logistic, amount)
         pass
 
     def send_shipment(self, location, amount):
@@ -128,24 +128,37 @@ class Repository:
             vaccine_entry = _Vaccines.find_oldest_vaccine()
             if vaccine_entry.quantity > amount:
                 _Vaccines.update_vaccine_entry(amount, vaccine_entry.id)
-                cur.execute("""Select logistic 
-                From Clinics Where location =?""", location)
-                logistic_id = cur.fetchone()
-                cur.execute("""Update Logistics 
-                Set count_sent = count_sent+?
-                Where id =?""", (amount, logistic_id))
+                logistic_id = _Clinics.find_by_location(location).logistic
+                _Logistics.update_sent(logistic_id, amount)
                 amount = 0
             else:
-                amount -= quantity
-                cur.execute("""Delete from Vaccines
-                Where id = ?""", entry)
-                cur.execute("""Select logistic 
-                            From Clinics Where location =?""", location)
-                logistic_id = cur.fetchone()
-                cur.execute("""Update Logistics 
-                            Set count_sent = count_sent+?
-                            Where id =?""", (quantity, logistic_id))
+                amount -= vaccine_entry.quantity
+                _Vaccines.delete_entry(vaccine_entry.id)
+                logistic_id = _Clinics.find_by_location(location).logistic
+                _Logistics.update_sent(logistic_id, amount)
         pass
+
+    def get_order_results(conn):
+        cur = conn.cursor()
+        total_inventory = 0
+        total_demand = 0
+        total_received = 0
+        total_sent = 0
+        result = _Vaccines.amount()
+        for row in result:
+            total_inventory += row[0]
+        result = Clinics.demand()
+        for row in result:
+            total_demand += row[0]
+        result = _Logistics.sent_received()
+        for row in result:
+            total_sent += row[0]
+            total_received += row[1]
+        result = str(total_inventory) + "," + str(total_demand)
+        + "," + str(total_received) + "," + str(total_sent)
+        return result
+
+
 # the repository singleton
 repo = Repository()
 atexit.register(repo._close)

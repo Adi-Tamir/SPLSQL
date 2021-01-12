@@ -19,3 +19,14 @@ class _Clinics:
         self._conn.execute("""Update Clinics 
                 Set demand = demand-?
                 Where location=?""", (amount, location))
+
+    def find_by_location(self, location):
+        c = self._conn.cursor()
+        c.execute("""Select * 
+                           From Clinics Where location =?""", location)
+        return Clinics(*c.fetchone())
+
+    def demand(self):
+        c = self._conn.cursor()
+        c.execute("""Select demand from Clinics""")
+        return c.fetchall()

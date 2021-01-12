@@ -15,7 +15,17 @@ class _Logistics:
         c.execute("""SELECT * FROM logistics WHERE id = ?""", [logistic_id])
         return Logistics(*c.fetchone())
 
-    def update(self, logistic_id, amount):
+    def update_sent(self, logistic_id, amount):
+       self._conn.execute("""Update Logistics 
+                    Set count_sent = count_sent+? Where id =?""", (amount, logistic_id))
+
+    def update_received(self, logistic_id, amount):
         self._conn.execute("""Update Logistics 
                 Set count_received = count_received+?
                 Where Logistics.id = ?""", (amount, logistic_id))
+
+    def sent_received(self):
+        c = self._conn.cursor()
+        c.execute("""Select count_sent, count_received
+         from Clinics""")
+        return c.fetchall()
