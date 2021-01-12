@@ -7,7 +7,7 @@ class _Vaccines:
 
     def insert(self, vaccine):
         self._conn.execute("""Insert into vaccines(id, date, supplier, quantity) 
-        Values(?, ?, ?, ?)""", [vaccine.id, vaccine.date, vaccine.supplier, vaccine.quantity])
+        Values(?, ?, ?, ?)""", (vaccine.id, vaccine.date, vaccine.supplier, vaccine.quantity))
 
     def find(self, vaccine_id):
         c = self._conn.cursor()
@@ -31,8 +31,13 @@ class _Vaccines:
 
     def amount(self):
         c = self._conn.cursor()
-        c.execute("""Select amount from Vaccines""")
+        c.execute("""Select quantity from Vaccines""")
         return c.fetchall()
+
+    def get_max_id(self):
+        c = self._conn.cursor()
+        c.execute("""SELECT max(id) FROM vaccines""")
+        return c.fetchone()
 
 
 class _Suppliers:
@@ -81,7 +86,7 @@ class _Logistics:
     def sent_received(self):
         c = self._conn.cursor()
         c.execute("""Select count_sent, count_received
-         from Clinics""")
+         from logistics""")
         return c.fetchall()
 
 
@@ -107,7 +112,7 @@ class _Clinics:
     def find_by_location(self, location):
         c = self._conn.cursor()
         c.execute("""Select * 
-                           From Clinics Where location =?""", location)
+                           From Clinics Where location = ?""", (location,))
         return Clinics(*c.fetchone())
 
     def demand(self):

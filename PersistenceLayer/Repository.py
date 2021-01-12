@@ -57,29 +57,29 @@ CREATE TABLE logistics(
         with open(config_path) as f:
             lines = f.readlines()
         nums_line = lines[0]
-        nums = nums_line.split(",")
+        nums = nums_line.replace('\n', '').split(",")
 
         end = len(lines) - 1
         start = end - int(nums[3]) + 1
-        for line in range(start, end):
+        for line in range(start, end + 1):
             logistic = self.create_logistics(lines[line].replace('\n', ''))
             _Logistics.insert_l(self, logistic)
 
-        end -= 1
+        end = start - 1
         start = end - int(nums[2]) + 1
-        for line in range(start, end):
+        for line in range(start, end + 1):
             clinic = self.create_clinics(lines[line].replace('\n', ''))
             _Clinics.insert_c(self, clinic)
 
-        end -= 1
+        end = start - 1
         start = end - int(nums[1]) + 1
-        for line in range(start, end):
+        for line in range(start, end + 1):
             supplier = self.create_supplier(lines[line].replace('\n', ''))
             _Suppliers.insert(self, supplier)
 
-        end -= 1
+        end = start - 1
         start = end - int(nums[0]) + 1
-        for line in range(start, end):
+        for line in range(start, end + 1):
             vaccine = self.create_vaccines(lines[line].replace('\n', ''))
             _Vaccines.insert(self, vaccine)
         self._conn.commit()
@@ -111,10 +111,10 @@ CREATE TABLE logistics(
         for line in lines:
             par = line.split(',')
             if len(par) == 3:
-                self.receive_shipment(self, par[0], par[1], par[2])
+                self.receive_shipment(par[0], par[1], par[2])
             else:
                 self.send_shipment(par[0], par[1])
-            order = self.get_order_results(self)
+            order = self.get_order_results()
             f = open(output_path, "a")
             f.write(order + '\n')
             f.close()
@@ -122,10 +122,11 @@ CREATE TABLE logistics(
         pass
 
     def receive_shipment(self, name, amount, date):
-        supplier = _Suppliers.find_by_name(name)
-        vaccine = Vaccines(date, supplier.name, amount)
-        _Vaccines.insert(vaccine)
-        _Logistics.update_received(supplier.logistic, amount)
+        next_id = int(self.vaccines.get_max_id()[0]) + 1
+        supplier = self.suppliers.find_by_name(name)
+        vaccine = Vaccines(next_id, date, supplier.name, amount)
+        self.vaccines.insert(vaccine)
+        self.logistics.update_received(supplier.logistic, amount)
         pass
 
     def send_shipment(self, location, amount):
@@ -134,16 +135,15 @@ CREATE TABLE logistics(
         while int(amount) > 0:
             vaccine_entry = _Vaccines.find_oldest_vaccine(self)
             if int(vaccine_entry.quantity) > int(amount):
-                _Vaccines.update_vaccine_entry(amount, vaccine_entry.id)
-                logistic_id = _Clinics.find_by_location(location).logistic
-                _Logistics.update_sent(logistic_id, amount)
+                self.vaccines.update_vaccine_entry(amount, vaccine_entry.id)
+                logistic_id = self.clinics.find_by_location(location).logistic
+                self.logistics.update_sent(logistic_id, amount)
                 amount = 0
             else:
                 amount -= vaccine_entry.quantity
-                print(vaccine_entry.id)
-                self.vaccines.delete_entry(vaccine_entry.id)
-                logistic_id = _Clinics.find_by_location(location).logistic
-                _Logistics.update_sent(logistic_id, amount)
+                self.vaccines.delete_entry((vaccine_entry.id,))
+                logistic_id = self.clinics.find_by_location(location).logistic
+                self.logistics.update_sent(logistic_id, vaccine_entry.quantity)
         pass
 
     def get_order_results(self):
@@ -151,18 +151,17 @@ CREATE TABLE logistics(
         total_demand = 0
         total_received = 0
         total_sent = 0
-        result = _Vaccines.amount()
+        result = self.vaccines.amount()
         for row in result:
             total_inventory += row[0]
-        result = Clinics.demand()
+        result = self.clinics.demand()
         for row in result:
             total_demand += row[0]
-        result = _Logistics.sent_received()
+        result = self.logistics.sent_received()
         for row in result:
             total_sent += row[0]
             total_received += row[1]
-        result = str(total_inventory) + "," + str(total_demand)
-        + "," + str(total_received) + "," + str(total_sent)
+        result = str(total_inventory) + "," + str(total_demand) + "," + str(total_received) + "," + str(total_sent)
         return result
 
 
