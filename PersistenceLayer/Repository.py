@@ -53,7 +53,10 @@ CREATE TABLE logistics(
         #self._conn.commit()
         pass
 
-    def insert_info(self, config_path):
+    def commit(self):
+        self._conn.commit()
+
+    def insert_info1(self, config_path):
         with open(config_path) as f:
             lines = f.readlines()
         nums_line = lines[0]
@@ -105,7 +108,7 @@ CREATE TABLE logistics(
         vaccine = Vaccines(args[0], args[1], args[2], args[3])
         return vaccine
 
-    def complete_orders(self, orders_path, output_path):
+    def complete_orders1(self, orders_path, output_path):
         with open(orders_path) as f:
             lines = f.readlines()
         for line in lines:
