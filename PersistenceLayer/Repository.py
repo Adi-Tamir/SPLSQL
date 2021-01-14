@@ -124,7 +124,7 @@ CREATE TABLE logistics(
         self._conn.commit()
         pass
 
-    def receive_shipment(self, name, amount, date):
+    def receive_shipment1(self, name, amount, date):
         next_id = int(self.vaccines.get_max_id()[0]) + 1
         supplier = self.suppliers.find_by_name(name)
         vaccine = Vaccines(next_id, date, supplier.name, amount)
@@ -132,7 +132,7 @@ CREATE TABLE logistics(
         self.logistics.update_received(supplier.logistic, amount)
         pass
 
-    def send_shipment(self, location, amount):
+    def send_shipment1(self, location, amount):
         _Clinics.update(self, amount, location)
         amount = int(amount)
         while int(amount) > 0:
@@ -149,7 +149,7 @@ CREATE TABLE logistics(
                 self.logistics.update_sent(logistic_id, vaccine_entry.quantity)
         pass
 
-    def get_order_results(self):
+    def get_order_results1(self):
         total_inventory = 0
         total_demand = 0
         total_received = 0
